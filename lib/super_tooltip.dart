@@ -149,6 +149,8 @@ class SuperTooltip {
   OverlayEntry? _backGroundOverlay;
   OverlayEntry? _ballonOverlay;
 
+  final EdgeInsets? padding;
+
   SuperTooltip({
     this.tooltipContainerKey,
     required this.content, // The contents of the tooltip.
@@ -186,6 +188,7 @@ class SuperTooltip {
     this.touchThrougArea,
     this.dismissOnTapOutside = true,
     this.containsBackgroundOverlay = true,
+    this.padding,
   })  : assert((maxWidth ?? double.infinity) >= (minWidth ?? 0.0)),
         assert((maxHeight ?? double.infinity) >= (minHeight ?? 0.0));
 
@@ -308,7 +311,7 @@ class SuperTooltip {
                 ? [BoxShadow(color: shadowColor, blurRadius: shadowBlurRadius, spreadRadius: shadowSpreadRadius)]
                 : null,
             shape: _BubbleShape(popupDirection, _targetCenter, borderRadius, arrowBaseWidth, arrowTipDistance,
-                borderColor, borderWidth, left, top, right, bottom)),
+                borderColor, borderWidth, left, top, right, bottom, padding)),
         margin: _getBallonContainerMargin(),
         child: content,
       ),
@@ -626,12 +629,13 @@ class _BubbleShape extends ShapeBorder {
   final double borderWidth;
   final double? left, top, right, bottom;
   final TooltipDirection popupDirection;
+  final EdgeInsets? padding;
 
   _BubbleShape(this.popupDirection, this.targetCenter, this.borderRadius, this.arrowBaseWidth, this.arrowTipDistance,
-      this.borderColor, this.borderWidth, this.left, this.top, this.right, this.bottom);
+      this.borderColor, this.borderWidth, this.left, this.top, this.right, this.bottom, this.padding);
 
   @override
-  EdgeInsetsGeometry get dimensions => new EdgeInsets.all(10.0);
+  EdgeInsetsGeometry get dimensions => padding ?? new EdgeInsets.all(10.0);
 
   @override
   Path getInnerPath(Rect rect, {TextDirection? textDirection}) {
@@ -836,7 +840,7 @@ class _BubbleShape extends ShapeBorder {
   @override
   ShapeBorder scale(double t) {
     return new _BubbleShape(popupDirection, targetCenter, borderRadius, arrowBaseWidth, arrowTipDistance, borderColor,
-        borderWidth, left, top, right, bottom);
+        borderWidth, left, top, right, bottom, padding);
   }
 }
 
