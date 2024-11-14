@@ -137,6 +137,8 @@ class SuperTooltip {
   /// Let's you pass a key to the Tooltips cotainer for UI Testing
   final Key? tooltipContainerKey;
 
+  final Key? tooltipWrapperKey;
+
   ///
   /// Allow the tooltip to be dismissed tapping outside
   final bool dismissOnTapOutside;
@@ -155,6 +157,7 @@ class SuperTooltip {
     this.tooltipContainerKey,
     required this.content, // The contents of the tooltip.
     required this.popupDirection,
+    this.tooltipWrapperKey,
     this.onClose,
     this.minWidth,
     this.minHeight,
@@ -204,6 +207,16 @@ class SuperTooltip {
     isOpen = false;
   }
 
+  void refresh({Color? background}) {
+    if (tooltipWrapperKey is! GlobalKey<AnimationWrapperState>) {
+      return;
+    }
+    final key  = tooltipWrapperKey as GlobalKey<AnimationWrapperState>;
+    if (key.currentState?.mounted?? false) {
+      key.currentState?.refresh(color: background);
+    }
+  }
+
   ///
   /// Displays the tooltip
   /// The center of [targetContext] is used as target of the arrow
@@ -216,8 +229,9 @@ class SuperTooltip {
     // Create the background below the popup including the clipArea.
     if (containsBackgroundOverlay) {
       _backGroundOverlay = OverlayEntry(
-          builder: (context) => _AnimationWrapper(
-                builder: (context, opacity) => AnimatedOpacity(
+          builder: (context) => AnimationWrapper(
+                defaultBackgroundColor: backgroundColor,
+                builder: (context, opacity, bgColor) => AnimatedOpacity(
                   opacity: opacity,
                   duration: const Duration(milliseconds: 600),
                   child: GestureDetector(
@@ -262,8 +276,10 @@ class SuperTooltip {
     }
 
     _ballonOverlay = OverlayEntry(
-        builder: (context) => _AnimationWrapper(
-              builder: (context, opacity) => AnimatedOpacity(
+        builder: (context) => AnimationWrapper(
+              wrapperKey: tooltipWrapperKey,
+              defaultBackgroundColor: backgroundColor,
+              builder: (context, opacity, bgColor) => AnimatedOpacity(
                 duration: Duration(
                   milliseconds: 300,
                 ),
@@ -285,7 +301,7 @@ class SuperTooltip {
                         ),
                         child: Stack(
                           fit: StackFit.passthrough,
-                          children: [_buildPopUp(), _buildCloseButton()],
+                          children: [_buildPopUp(bgColor), _buildCloseButton()],
                         ))),
               ),
             ));
@@ -301,12 +317,12 @@ class SuperTooltip {
     isOpen = true;
   }
 
-  Widget _buildPopUp() {
+  Widget _buildPopUp(Color bgColor) {
     return Positioned(
       child: Container(
         key: tooltipContainerKey,
         decoration: ShapeDecoration(
-            color: backgroundColor,
+            color: bgColor,
             shadows: hasShadow
                 ? [BoxShadow(color: shadowColor, blurRadius: shadowBlurRadius, spreadRadius: shadowSpreadRadius)]
                 : null,
@@ -904,27 +920,40 @@ class _ShapeOverlay extends ShapeBorder {
   }
 }
 
-typedef FadeBuilder = Widget Function(BuildContext, double);
+typedef FadeBuilder = Widget Function(BuildContext, double, Color);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class _AnimationWrapper extends StatefulWidget {
+class AnimationWrapper extends StatefulWidget {
   final FadeBuilder? builder;
+  final Key? wrapperKey;
+  final Color? defaultBackgroundColor;
 
-  _AnimationWrapper({this.builder});
+  AnimationWrapper({this.builder, this.wrapperKey, this.defaultBackgroundColor})
+      : super(key: wrapperKey);
 
   @override
-  _AnimationWrapperState createState() => new _AnimationWrapperState();
+  AnimationWrapperState createState() => new AnimationWrapperState();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class _AnimationWrapperState extends State<_AnimationWrapper> {
+class AnimationWrapperState extends State<AnimationWrapper> {
   double opacity = 0.0;
+  Color? backgroundColor;
+
+  void refresh({Color? color}) {
+    setState(() {
+      if (backgroundColor != null) {
+        backgroundColor = color;
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    backgroundColor = widget.defaultBackgroundColor ?? Colors.white;
     WidgetsBinding.instance!.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {
@@ -936,6 +965,6 @@ class _AnimationWrapperState extends State<_AnimationWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.builder!(context, opacity);
+    return widget.builder!(context, opacity, backgroundColor ?? Colors.white);
   }
 }
